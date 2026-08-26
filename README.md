@@ -1,156 +1,66 @@
-# Rocks template repo
+# Chisel rock
 
-This repository template provides a basic setup to help you get started quickly with developing your own rock.
+This repository contains the [rock](https://documentation.ubuntu.com/server/explanation/virtualisation/about-rock-images/) definitions for [Chisel](https://github.com/canonical/chisel), the tool that carves and cuts Debian packages into minimal root filesystems.
 
-## Table of Contents
+## Chiselled image
 
-- [Setup Instructions](#setup-instructions)
-- [Directory Structure](#directory-structure)
-- [Building the Rock](#building-the-rock)
+The rock is built with `bare` as its base and contains only the `chisel` binary, the directory skeleton from `base-files`, and the CA certificate bundle Chisel needs to reach the [slice definitions](https://github.com/canonical/chisel-releases) and the Ubuntu archives. There is no shell and no package manager in the image.
 
-## Setup Instructions
+## Available versions
 
-### 1. Start a new repository from this template
+* [chisel-1.4 (Ubuntu 26.04)](./chisel/1.4-26.04/rockcraft.yaml)
 
-Check GitHub's documentation on [creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
+## Example
 
-#### 1.1. Create secrets, if needed
+Chisel writes a root filesystem to whatever `--root` points at, so the useful thing to do is to run it against a mounted directory:
 
-> [!IMPORTANT]
-> If your repository is **internal** or **private**, you need to create the
-> following secrets in your repository:
->
-> - `REPO_CLONER_TOKEN`: use a [fine grained token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token) with `read:content` and
-> `read:metadata` permissions. **Make sure the token's "resource owner" is _canonical_**, and has access to the right repositories (not just public in this case).
-> Also, please note that fine-grained tokens have an expiration date. So if and when experiencing CI problems checking out the repository, make sure the token is still valid.
-
-### 2. Customize the Template
-
-This template comes with a basic setup to get you started. Here's what you need to customize:
-
-- **`rockcraft.yaml`**: This is your rock's [recipe](https://documentation.ubuntu.com/rockcraft/en/stable/reference/rockcraft.yaml/)! Adjust its contents, as well as its parent directories' names according to your rock's name and version.
-- **`task.yaml`**: This is your tests' file, it contains the required instructions written in bash for your rock to be tested using [spread](https://github.com/canonical/spread).
-- **`SECURITY.md.template`**: Edit the template with your repo's details and set the security policy by renaming this file to `SECURITY.md`.
-- **`CODEOWNERS`**: Optional, but recommended. Read more about [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
-
-## Directory Structure
-
-Here's an overview of the directory structure of the repository:
-
-```
-.github/
-   |─ ...
-   └─ ci.yaml                 # CI configuration file
-
-
-my-rock-name/                 # Directory containing all versions of a single rock
-   └─ 0.1/                    # Directory containing the rock project file for a specific version
-      |─ rockcraft.yaml       # Rock project file
-      |─ spread.yaml          # Spread test configuration
-      └─ spread/              # Spread tests directory
-         |─ .extension        # Functions used internally by spread tests
-         └─ general/test/     # Directory containing tests
-            └─ task.yaml      # Test file
-.gitignore
-CODEOWNERS                    
-README.md                     # Top level document containing this specification
-SECURITY.md.template          # Security policy template
+```bash
+mkdir rootfs
+docker run --rm -v "$PWD/rootfs:/rootfs" chisel:1.4-26.04 \
+  exec chisel cut --release ubuntu-24.04 --root /rootfs \
+  base-files_base ca-certificates_data
 ```
 
-## Building, testing and uploading the Rock
+The container entrypoint is [`pebble`](https://github.com/canonical/pebble), and this rock declares no services, so commands are run through `pebble exec` - that is what the `exec` in the command above is.
 
-To build, test and upload the rock to GHCR, simply commit your `rockcraft.yaml`
-file and check the GitHub actions.
+Downloaded archive indices and `.deb` files are cached under `/var/cache/chisel`. Mount a volume there to reuse the cache between runs:
 
-> [!NOTE]
-> Before committing your `rockcraft.yaml`, it is recommended that you `pack` it
-> with [Rockcraft](https://snapcraft.io/rockcraft) run a smoke test locally.
-> Check the [Rockcraft documentation](https://documentation.ubuntu.com/rockcraft) to learn more.
+```bash
+docker volume create chisel-cache
+docker run --rm -v chisel-cache:/var/cache/chisel -v "$PWD/rootfs:/rootfs" \
+  chisel:1.4-26.04 exec chisel cut --release ubuntu-24.04 --root /rootfs base-files_base
+```
+
+To cut from a Pro archive, mount your credentials at `/etc/apt/auth.conf.d`:
+
+```bash
+docker run --rm -v /etc/apt/auth.conf.d:/etc/apt/auth.conf.d:ro \
+  -v "$PWD/rootfs:/rootfs" chisel:1.4-26.04 \
+  exec chisel cut --release ubuntu-24.04 --root /rootfs some-pro-package_slice
+```
+
+## Building and testing locally
+
+Requires [Rockcraft](https://snapcraft.io/rockcraft) and LXD:
+
+```bash
+make check-setup
+
+cd chisel/1.4-26.04
+rockcraft pack
+rockcraft test
+```
+
+There are two spread suites: `spread/general/` drives the rock under Docker, and `spread/k8s/` bootstraps a single-node k8s and runs a cut as a Job, which is what exercises cluster DNS and egress from inside the pod. `make test-all` runs both for every rock in this repository.
 
 ## Sync with template
 
-A `Makefile` is provided to sync the repository with the latest template changes. To do so, simply run:
+This repository was created from [rocks-template](https://github.com/canonical/rocks-template). To pull in later template changes:
 
 ```bash
 make sync-with-template
 ```
 
-## Override the behavior of the CI
+## CI configuration
 
-The behavior of the CI is configured in `.github/ci.yaml`, which defines the following parameters:
-
-| Property | Required | Type | Description |
-|---|---|---|---|
-| ghcr | True | Dict[str, bool] | The configuration regarding the GHCR. |
-| ghcr.upload | True | bool | Whether the images should be uploaded to GHCR after successful build and test. |
-| ghcr.cve-scan | True | bool | Whether the continuous vulnerability scanning cron workflow should be run. When set to `true`, `ghcr.upload` should also be `true`. |
-| registries | True | Dict[str, Any] | The configuration regarding the additional registries. |
-| registries.\<name\> | False | Dict[str, Any] | The name of the registry. |
-| registries.\<name\>.uri | True | str | The URL of the registry. |
-| registries.\<name\>.auth | True | conlist[Any, min_items=1, max_items=1] | The authentication configurations to access the registry. Currently only one single configuration is supported. |
-| registries.\<name\>.auth[0].method | True | str | The method of the authentication configuration. Supported methods are `basic`, `bearer`, `ecr` and `ecr-public`. |
-| registries.\<name\>.auth[0].config | True | Dict[str, str] | The configuration of the corresponding authentication method. See [below](#registry-authentication-configuration) for details. |
-| images | True | List[Any] | The list of images to be built, tested and uploaded. |
-| images.*.directory | True | str | The directory to the `rockcraft.yaml` file. A quoted asterisk symbol `'*'` matches all the directories that contain a `rockcraft.yaml` file within this repo. |
-| images.*.pro | False | Optional[Dict[Any]] | The configuration for building pro enabled rocks. See [below](#building-pro-enabled-rocks) for details. |
-| images.*.registries | True | Optional[List[str]] | The list of additional registries (defined in `registries`) to which the image should be published. |
-
-
-### Registry authentication configuration
-
-The following table lists the supported authentication methods and their
-corresponding configuration parameters.
-
-The configuration arguments are the string literals of the secret names stored
-in the repository's secrets, prepended with the prefix `secrets.`. E.g., for the
-`bearer` method, if the `token` secret stored in the repository is named
-`MY_BEARER_TOKEN`, then the configuration should be `token:
-secrets.MY_BEARER_TOKEN`.
-
-
-| Method | Configuration Parameters | Description |
-|---|---|---|
-| basic | username: str<br>password: str | Basic authentication using a username and password. |
-| bearer | token: str | Bearer token authentication. |
-| ecr<br>ecr-public | region: str<br>username: str<br>password: str | AWS ECR (public) authentication for private ECR registries.<br>Use `username` for AWS access key ID and `password` for AWS secret access key. |
-
-### Building Pro enabled rocks
-
-> [!IMPORTANT]
-> Pro enabled rocks cannot be uploaded to GHCR on public repositories. If you want to upload Pro enabled rocks to GHCR, please make sure your repository is internal or private, and that you have the `REPO_CLONER_TOKEN` secret properly configured as mentioned in the [Setup Instructions](#setup-instructions) section.
-
-To build rocks with pro services enabled, the `pro` configuration should be defined under the corresponding image configuration. The `pro` configuration contains the following parameters:
-
-| Property | Required | Type | Description |
-|---|---|---|---|
-| services | True | List[str] | The list of pro services to be enabled. Requires a pro token configured within the repository secrets. |
-| config.token | True | str | The secret name of the pro token stored in the repository secrets. It must be provided in the format `secrets.<SECRET_NAME>`. |
-| config.artifact-passphrase | True | str | The secret name of passphrase used to encrypt the generated pro artifacts. It must be provided in the format `secrets.<SECRET_NAME>`. |
-
-### Example Configuration
-Here is an example configuration that builds all the images within the
-repository, uploads them to GHCR and an additional private registry with basic
-authentication, and enables the CVE scan cron workflow:
-
-```yaml
-ghcr:
-  upload: true
-  cve-scan: true
-registries:
-  my-private-registry:
-    uri: my.private.registry.com
-    auth:
-      - method: basic
-        config:
-          username: secrets.MY_PRIVATE_REGISTRY_USERNAME
-          password: secrets.MY_PRIVATE_REGISTRY_PASSWORD
-images:
-   - directory: '*'
-     pro:
-      services:
-        - esm-apps
-      config:
-        token: secrets.MY_PRO_TOKEN
-        artifact-passphrase: secrets.MY_CUSTOM_PASSPHRASE
-     registries:
-      - my-private-registry
+Building, testing and publishing is driven by the workflows under `.github/workflows/` and configured in `.github/ci.yaml`. See the [rocks-template README](https://github.com/canonical/rocks-template/blob/main/README.md) for the full reference of that file.
