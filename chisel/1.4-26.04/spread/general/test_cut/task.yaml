@@ -1,23 +1,31 @@
-summary: chisel can cut slices into a root filesystem
+summary: chisel cuts slices into a root filesystem
 
 execute: |
   # Cleanup function
   cleanup() {
     docker rm -f chisel-cut >/dev/null 2>&1 || true
-    rm -rf "$PWD/rootfs"
+    docker volume rm chisel-rootfs >/dev/null 2>&1 || true
+    rm -rf "$PWD/rootfs" "$PWD/rootfs.tar"
   }
   trap cleanup EXIT
 
-  # The rock ships no shell, so keep a container alive and copy the result out
-  # of it rather than inspecting the cut root in place.
-  docker run -d --name chisel-cut chisel:1.4-26.04
+  # chisel does not create the --root directory itself, and the rock ships no
+  # shell to create it with, so the volume mount is what puts /rootfs there.
+  docker volume create chisel-rootfs
+
+  # Keep a long-lived container and copy the result out of it rather than
+  # inspecting the cut root in place - again, no shell in the image.
+  docker run -d --name chisel-cut -v chisel-rootfs:/rootfs chisel:1.4-26.04
 
   docker exec chisel-cut /usr/bin/chisel cut \
     --release ubuntu-24.04 \
     --root /rootfs \
     base-files_base ca-certificates_data
 
-  docker cp chisel-cut:/rootfs "$PWD/rootfs"
+  # Streamed as a tar rather than written directly: the docker snap is confined
+  # and cannot create files under the spread project directory.
+  docker cp chisel-cut:/rootfs - > rootfs.tar
+  tar -xf rootfs.tar
 
   test -d rootfs/etc
   test -d rootfs/var/lib

@@ -61,6 +61,11 @@ suites:
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
         images import --base-name docker.io/library/chisel $CRAFT_ARTIFACT
 
+      # The job's second container is not built from this repo, so seed it here
+      # rather than leaving the job to pull it mid-run.
+      /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
+        images pull docker.io/library/ubuntu:26.04
+
     restore: |
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
         images rm docker.io/library/chisel:1.4 || true

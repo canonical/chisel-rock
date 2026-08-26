@@ -13,7 +13,6 @@ execute: |
 
   # Cleanup function
   cleanup() {
-    k8s kubectl logs job/chisel-cut -c chisel --tail=100 || true
     k8s kubectl delete -f job.yaml --ignore-not-found --timeout=60s || true
   }
   trap cleanup EXIT
@@ -21,9 +20,27 @@ execute: |
   # The job cuts into an emptyDir with the rock, then verifies the result from a
   # second container sharing the volume. It completes only if both succeed.
   k8s kubectl apply -f job.yaml
-  k8s kubectl wait --for=condition=complete job/chisel-cut --timeout=420s
 
-  # A cut that cannot reach coredns fails with a resolver error rather than an
-  # http one, so assert on it explicitly instead of inferring from the exit code.
-  ! k8s kubectl logs job/chisel-cut -c chisel 2>/dev/null \
-    | grep -qE "Temporary failure in name resolution|no such host"
+  # kubectl wait has no notion of a job that can no longer complete, so with
+  # backoffLimit 0 a failed cut would sit here until the timeout expires.
+  deadline=$((SECONDS + 420))
+  while true; do
+    conditions=$(k8s kubectl get job/chisel-cut -o jsonpath='{.status.conditions[*].type}')
+    case " $conditions " in
+      *" Complete "*)
+        break
+        ;;
+      *" Failed "*)
+        echo "chisel-cut did not complete:" >&2
+        k8s kubectl logs job/chisel-cut --all-containers --tail=200 >&2 || true
+        exit 1
+        ;;
+    esac
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      echo "chisel-cut timed out:" >&2
+      k8s kubectl describe job/chisel-cut >&2 || true
+      k8s kubectl logs job/chisel-cut --all-containers --tail=200 >&2 || true
+      exit 1
+    fi
+    sleep 5
+  done
