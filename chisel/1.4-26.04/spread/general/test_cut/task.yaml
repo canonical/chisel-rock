@@ -9,12 +9,10 @@ execute: |
   }
   trap cleanup EXIT
 
-  # chisel does not create the --root directory itself, and the rock ships no
-  # shell to create it with, so the volume mount is what puts /rootfs there.
+  # There is no shell in the image: the mount is what creates /rootfs, since
+  # chisel will not, and the result has to be inspected from outside.
   docker volume create chisel-rootfs
 
-  # Keep a long-lived container and copy the result out of it rather than
-  # inspecting the cut root in place - again, no shell in the image.
   docker run -d --name chisel-cut -v chisel-rootfs:/rootfs chisel:1.4-26.04
 
   docker exec chisel-cut /usr/bin/chisel cut \

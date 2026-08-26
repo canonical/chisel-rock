@@ -9,9 +9,7 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      # The rock declares no services, so pebble is bypassed and chisel is run
-      # directly. Cutting needs coredns to resolve codeload.github.com and the
-      # archive host, and egress TLS to reach both.
+      # No services in the rock, so pebble is bypassed and chisel run directly.
       - name: chisel
         image: chisel:1.4
         command: ["/usr/bin/chisel"]

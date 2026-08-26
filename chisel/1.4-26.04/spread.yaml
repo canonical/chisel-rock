@@ -51,18 +51,17 @@ suites:
       k8s bootstrap
       k8s status --wait-ready
 
-      # status --wait-ready returns before cilium finishes programming coredns, so
-      # a pod resolving dns in that window gets EPERM. chisel resolves
-      # codeload.github.com and the archive host on every cut, so wait for
-      # kube-system to actually settle before running anything.
+      # status --wait-ready returns before cilium finishes programming coredns,
+      # and every cut starts by resolving codeload.github.com and the archive
+      # host. Wait for kube-system to actually settle.
       k8s kubectl wait --for=condition=Ready pods --all --namespace kube-system --timeout=5m
 
       # Copy the built image to the local registry
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
         images import --base-name docker.io/library/chisel $CRAFT_ARTIFACT
 
-      # The job's second container is not built from this repo, so seed it here
-      # rather than leaving the job to pull it mid-run.
+      # Seed the job's verify image rather than let it pull against the job's
+      # own deadline.
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
         images pull docker.io/library/ubuntu:26.04
 

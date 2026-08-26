@@ -12,8 +12,6 @@ description: |
     This image is a chiselled Ubuntu rock containing only the chisel binary and
     the CA certificates it needs to reach the slice definitions and the archive.
 
-# rockcraft validates against a deprecated SPDX list, so the current
-# "AGPL-3.0-only" identifier is rejected in favour of this one.
 license: AGPL-3.0
 
 base: bare
@@ -26,8 +24,7 @@ platforms:
     s390x:
 
 environment:
-    # Without this chisel falls back to $HOME/.cache, and then to a fresh
-    # temporary directory when HOME is unset, losing the download cache.
+    # HOME is unset here, and chisel's fallback for that is a throwaway dir.
     XDG_CACHE_HOME: /var/cache
 
 parts:
@@ -41,17 +38,15 @@ parts:
             - go/1.25/stable
         build-environment:
             - CGO_ENABLED: "0"
-            # One -ldflags, not the two upstream's snapcraft.yaml uses: cmd/go
-            # replaces the flag on each occurrence rather than appending, so
-            # only the last one ever reaches the linker. -s covers -w anyway.
+            # Upstream passes -ldflags twice; cmd/go keeps only the last, and
+            # -s covers -w anyway.
             - GOFLAGS: -trimpath -ldflags=-s
         override-build: |
-            # source-depth 1 leaves no history for `git describe`, so hand the
-            # version to the generator instead of running `go generate ./cmd`.
+            # go generate ./cmd derives this from git describe, which has no
+            # history to work with under source-depth 1.
             ./cmd/mkversion.sh v1.4.2
             craftctl default
-        # The go plugin also builds internal/deb/chrorder, which is a code
-        # generator with no business in the image.
+        # Drops chrorder, the code generator the go plugin also builds.
         stage:
             - usr/bin/chisel
 
@@ -61,18 +56,16 @@ parts:
             - base-files_base
             - base-files_chisel
             - base-files_release-info
-            # Go reads the bundle at /etc/ssl/certs/ca-certificates.crt to reach
-            # codeload.github.com and the Pro archives over TLS.
+            # _data is enough: it carries the bundle Go's x509 looks for.
             - ca-certificates_data
         override-prime: |
             craftctl default
 
-            # Mount point for Pro credentials. Without the directory chisel
-            # reports a read error for it on every cut, Pro archive or not.
+            # Pro credential mount point. Chisel reports a read error for the
+            # directory on every cut when it is missing.
             mkdir -p ${CRAFT_PRIME}/etc/apt/auth.conf.d
 
-    # Covers the chiselled debs only. The chisel binary is built from source and
-    # so has no entry in the generated manifest.
+    # Covers the chiselled debs only - nothing from the source-built binary.
     deb-security-manifest:
         plugin: make
         after: [chisel, system-files]

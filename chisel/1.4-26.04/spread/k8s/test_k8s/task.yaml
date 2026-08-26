@@ -17,8 +17,7 @@ execute: |
   }
   trap cleanup EXIT
 
-  # The job cuts into an emptyDir with the rock, then verifies the result from a
-  # second container sharing the volume. It completes only if both succeed.
+  # The job completes only if both its containers do - that is the assertion.
   k8s kubectl apply -f job.yaml
 
   # kubectl wait has no notion of a job that can no longer complete, so with
