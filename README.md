@@ -1,6 +1,8 @@
 # Chisel rock
 
-This repository contains the [rock](https://documentation.ubuntu.com/server/explanation/virtualisation/about-rock-images/) definitions for [Chisel](https://github.com/canonical/chisel), the tool that carves and cuts Debian packages into minimal root filesystems.
+This repository contains the [rock](https://documentation.ubuntu.com/server/explanation/virtualisation/about-rock-images/) definitions for [Chisel](https://github.com/canonical/chisel), a software tool for carving and cutting Debian packages.
+
+Chisel derives a minimal Ubuntu-like Linux distribution using a release database that defines "slices" of existing packages. Slices let you cherry-pick just the files you need from the Ubuntu archives and combine them into a new filesystem, which can then be packaged into an OCI-compliant container image or similar.
 
 ## Chiselled image
 
@@ -12,7 +14,7 @@ The rock is built with `bare` as its base and contains only the `chisel` binary,
 
 ## Example
 
-Chisel writes a root filesystem to whatever `--root` points at, so the useful thing to do is to run it against a mounted directory:
+Chisel writes a root filesystem to whatever `--root` points at, and it does not create that directory itself, so the useful thing to do is to mount one:
 
 ```bash
 mkdir rootfs

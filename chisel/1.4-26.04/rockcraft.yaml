@@ -1,12 +1,13 @@
 name: chisel
 version: '1.4'
 
-summary: Carve and cut Debian packages into minimal root filesystems
+summary: Chisel is a software tool for carving and cutting Debian packages!
 description: |
-    Chisel is a software tool for carving and cutting Debian packages. It uses
-    a database of package slices to extract just the files an application needs
-    from the Ubuntu archives, and combines them into a root filesystem that can
-    be packaged as an OCI image.
+    Chisel can derive a minimal Ubuntu-like Linux distribution using a release
+    database that defines "slices" of existing packages. Slices enable
+    developers to cherry-pick just the files they need from the Ubuntu
+    archives, and combine them to create a new filesystem which can be packaged
+    into an OCI-compliant container image or similar.
 
     This image is a chiselled Ubuntu rock containing only the chisel binary and
     the CA certificates it needs to reach the slice definitions and the archive.
