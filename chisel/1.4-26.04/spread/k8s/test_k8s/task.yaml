@@ -1,0 +1,29 @@
+summary: chisel cuts a root filesystem from inside the cluster
+
+execute: |
+
+  # Cilium (CNI) is not yet supported on s390x and ppc64le
+  # so we'll skip the k8s tests on those architectures for now
+  # ---
+  # TODO: Remove this check once Cilium supports s390x and ppc64le
+  if [ "$(uname -m)" = "s390x" ] || [ "$(uname -m)" = "ppc64le" ]; then
+    echo "Skipping k8s tests on $(uname -m) architecture"
+    exit 0
+  fi
+
+  # Cleanup function
+  cleanup() {
+    k8s kubectl logs job/chisel-cut -c chisel --tail=100 || true
+    k8s kubectl delete -f job.yaml --ignore-not-found --timeout=60s || true
+  }
+  trap cleanup EXIT
+
+  # The job cuts into an emptyDir with the rock, then verifies the result from a
+  # second container sharing the volume. It completes only if both succeed.
+  k8s kubectl apply -f job.yaml
+  k8s kubectl wait --for=condition=complete job/chisel-cut --timeout=420s
+
+  # A cut that cannot reach coredns fails with a resolver error rather than an
+  # http one, so assert on it explicitly instead of inferring from the exit code.
+  ! k8s kubectl logs job/chisel-cut -c chisel 2>/dev/null \
+    | grep -qE "Temporary failure in name resolution|no such host"

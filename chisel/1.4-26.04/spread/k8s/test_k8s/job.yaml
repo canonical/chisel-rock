@@ -1,0 +1,45 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chisel-cut
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+      # The rock declares no services, so pebble is bypassed and chisel is run
+      # directly. Cutting needs coredns to resolve codeload.github.com and the
+      # archive host, and egress TLS to reach both.
+      - name: chisel
+        image: chisel:1.4
+        command: ["/usr/bin/chisel"]
+        args:
+          - cut
+          - --release
+          - ubuntu-24.04
+          - --root
+          - /rootfs
+          - base-files_base
+          - ca-certificates_data
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+      containers:
+      - name: verify
+        image: ubuntu:26.04
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            set -eux
+            test -d /rootfs/etc
+            test -d /rootfs/var/lib
+            test -s /rootfs/etc/ssl/certs/ca-certificates.crt
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+      volumes:
+      - name: rootfs
+        emptyDir: {}

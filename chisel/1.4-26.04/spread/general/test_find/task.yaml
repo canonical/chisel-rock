@@ -1,0 +1,5 @@
+summary: chisel can fetch a release and search it for slices
+
+execute: |
+  docker run --rm chisel:1.4-26.04 exec chisel find --release ubuntu-24.04 base-files \
+    | grep -qF "base-files_base"

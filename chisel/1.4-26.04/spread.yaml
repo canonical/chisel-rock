@@ -1,0 +1,71 @@
+project: chisel
+
+backends:
+  craft:
+    type: craft
+    systems:
+      - ubuntu-24.04:
+
+suites:
+  spread/general/:
+    summary: General integration tests
+
+    prepare: |
+      sudo snap install docker
+
+      # For 'rockcraft.skopeo'
+      sudo snap install --classic rockcraft
+
+      # Wait for docker daemon to come online
+      sudo apt install --yes retry
+      retry --times=10 --delay 2 -- docker images
+      sudo apt remove --yes retry
+
+      # Load the rock into docker
+      sudo rockcraft.skopeo --insecure-policy copy "oci-archive:$CRAFT_ARTIFACT" docker-daemon:chisel:1.4-26.04
+
+    restore: |
+      docker image rm --force chisel:1.4-26.04
+
+  spread/k8s/:
+    summary: K8s integration tests
+
+    prepare: |
+      # Cilium (CNI) is not yet supported on s390x and ppc64le
+      # so we'll skip the k8s tests on those architectures for now
+      # ---
+      # TODO: Remove this check once Cilium supports s390x and ppc64le
+      if [ "$(uname -m)" = "s390x" ] || [ "$(uname -m)" = "ppc64le" ]; then
+        echo "Skipping k8s tests on $(uname -m) architecture"
+        exit 0
+      fi
+
+      # Cleanup containerd
+      sudo snap remove docker
+      sudo systemctl stop containerd || true
+      sudo rm -rf /run/containerd /var/lib/containerd /etc/containerd || true
+
+      sudo snap install k8s --classic
+
+      # Bootstrap k8s and wait for it to be ready
+      k8s bootstrap
+      k8s status --wait-ready
+
+      # status --wait-ready returns before cilium finishes programming coredns, so
+      # a pod resolving dns in that window gets EPERM. chisel resolves
+      # codeload.github.com and the archive host on every cut, so wait for
+      # kube-system to actually settle before running anything.
+      k8s kubectl wait --for=condition=Ready pods --all --namespace kube-system --timeout=5m
+
+      # Copy the built image to the local registry
+      /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
+        images import --base-name docker.io/library/chisel $CRAFT_ARTIFACT
+
+    restore: |
+      /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
+        images rm docker.io/library/chisel:1.4 || true
+
+exclude:
+  - .git
+
+kill-timeout: 1h

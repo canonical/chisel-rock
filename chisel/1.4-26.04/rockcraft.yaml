@@ -1,0 +1,67 @@
+name: chisel
+version: '1.4'
+
+summary: Carve and cut Debian packages into minimal root filesystems
+description: |
+    Chisel is a software tool for carving and cutting Debian packages. It uses
+    a database of package slices to extract just the files an application needs
+    from the Ubuntu archives, and combines them into a root filesystem that can
+    be packaged as an OCI image.
+
+    This image is a chiselled Ubuntu rock containing only the chisel binary and
+    the CA certificates it needs to reach the slice definitions and the archive.
+
+license: AGPL-3.0-only
+
+base: bare
+build-base: ubuntu@26.04
+
+platforms:
+    amd64:
+    arm64:
+    ppc64el:
+    s390x:
+
+environment:
+    # Without this chisel falls back to $HOME/.cache, and then to a fresh
+    # temporary directory when HOME is unset, losing the download cache.
+    XDG_CACHE_HOME: /var/cache
+
+parts:
+    chisel:
+        plugin: go
+        source: https://github.com/canonical/chisel.git
+        source-type: git
+        source-tag: v1.4.2
+        source-depth: 1
+        build-snaps:
+            - go/1.25/stable
+        build-environment:
+            - CGO_ENABLED: "0"
+            - GOFLAGS: -trimpath -ldflags=-w -ldflags=-s
+        override-build: |
+            # source-depth 1 leaves no history for `git describe`, so hand the
+            # version to the generator instead of running `go generate ./cmd`.
+            ./cmd/mkversion.sh v1.4.2
+            craftctl default
+        organize:
+            bin/chisel: usr/bin/chisel
+        stage:
+            - usr/bin/chisel
+
+    system-files:
+        plugin: nil
+        stage-packages:
+            - base-files_base
+            - base-files_chisel
+            - base-files_release-info
+            # Go reads the bundle at /etc/ssl/certs/ca-certificates.crt to reach
+            # codeload.github.com and the Pro archives over TLS.
+            - ca-certificates_data
+
+    deb-security-manifest:
+        plugin: make
+        source: https://github.com/canonical/rocks-security-manifest
+        source-type: git
+        source-branch: main
+        override-prime: gen_manifest

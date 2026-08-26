@@ -1,0 +1,24 @@
+summary: chisel can cut slices into a root filesystem
+
+execute: |
+  # Cleanup function
+  cleanup() {
+    docker rm -f chisel-cut >/dev/null 2>&1 || true
+    rm -rf "$PWD/rootfs"
+  }
+  trap cleanup EXIT
+
+  # The rock ships no shell, so keep a container alive and copy the result out
+  # of it rather than inspecting the cut root in place.
+  docker run -d --name chisel-cut chisel:1.4-26.04
+
+  docker exec chisel-cut /usr/bin/chisel cut \
+    --release ubuntu-24.04 \
+    --root /rootfs \
+    base-files_base ca-certificates_data
+
+  docker cp chisel-cut:/rootfs "$PWD/rootfs"
+
+  test -d rootfs/etc
+  test -d rootfs/var/lib
+  test -s rootfs/etc/ssl/certs/ca-certificates.crt
