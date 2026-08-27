@@ -1,0 +1,63 @@
+#####################################################
+# Trivy ignore file for chisel/1.4-26.04            #
+#####################################################
+
+# Every entry below is golang.org/x/crypto v0.37.0, the version chisel v1.4.2
+# pins in go.mod, and every one of them is in ssh/, ssh/agent/ or
+# ssh/knownhosts/. Chisel imports only openpgp/{armor,clearsign,packet} and
+# sha3 from that module, so none of this code is linked into /usr/bin/chisel.
+# Trivy's gobinary scanner reports at module granularity rather than package,
+# which is why they show up at all.
+#
+# Drop these once chisel bumps golang.org/x/crypto to v0.52.0 or later.
+# References: https://ubuntu.com/security/<CVE-ID>
+
+# golang.org/x/crypto/ssh/agent
+# SSH client panic due to unexpected SSH_AGENT_SUCCESS
+# Severity: High | Fixed in: 0.43.0
+CVE-2025-47913
+
+# golang.org/x/crypto/ssh
+# Unauthorized command execution via discarded SSH permissions
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39828
+
+# golang.org/x/crypto/ssh
+# Denial of Service via crafted public key with excessive parameters
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39829
+
+# golang.org/x/crypto/ssh
+# Denial of Service via resource leak from unsolicited SSH responses
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39830
+
+# golang.org/x/crypto/ssh
+# Security key bypass due to missing user presence check
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39831
+
+# golang.org/x/crypto/ssh/agent
+# Security bypass due to improper handling of key restrictions
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39832
+
+# golang.org/x/crypto/ssh
+# Denial of Service via crafted SSH certificate
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-39835
+
+# golang.org/x/crypto/ssh/knownhosts
+# Revocation bypass via unchecked SignatureKey
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-42508
+
+# golang.org/x/crypto/ssh
+# Authorization bypass due to skipped source-address validation
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-46595
+
+# golang.org/x/crypto/ssh
+# Denial of Service via crafted AES-GCM packet decoder inputs
+# Severity: High | Fixed in: 0.52.0
+CVE-2026-46597

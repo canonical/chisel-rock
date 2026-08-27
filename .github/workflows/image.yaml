@@ -58,6 +58,9 @@ jobs:
     uses: canonical/oci-factory/.github/workflows/Test-Rock.yaml@main
     with:
       oci-archive-name: ${{ matrix.artifact-name }}
+      # Not in the template, but the nightly cve-scan already reads this file
+      # and the vulnerability test has no other way to find it.
+      trivyignore-path: ${{ matrix.directory }}/.trivyignore
     secrets:
       pro-artifact-passphrase: ${{ secrets[matrix.pro-artifact-passphrase] }}
 
