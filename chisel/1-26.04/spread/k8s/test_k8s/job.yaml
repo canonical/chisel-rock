@@ -11,7 +11,7 @@ spec:
       initContainers:
       # No services in the rock, so pebble is bypassed and chisel run directly.
       - name: chisel
-        image: chisel:1.4
+        image: chisel:1
         command: ["/usr/bin/chisel"]
         args:
           - cut

@@ -1,0 +1,4 @@
+summary: chisel reports the version the rock was built from
+
+execute: |
+  docker run --rm chisel:1-26.04 exec chisel version | grep -qxF "v1.4.2"

@@ -1,5 +1,5 @@
 summary: chisel can report the contents of a slice
 
 execute: |
-  docker run --rm chisel:1.4-26.04 exec chisel info --release ubuntu-24.04 ca-certificates_data \
+  docker run --rm chisel:1-26.04 exec chisel info --release ubuntu-24.04 ca-certificates_data \
     | grep -qF "ca-certificates.crt"

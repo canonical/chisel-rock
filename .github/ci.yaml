@@ -6,4 +6,4 @@ ghcr:
 registries:
 
 images:
-  - directory: "chisel/1.4-26.04"
+  - directory: "chisel/1-26.04"

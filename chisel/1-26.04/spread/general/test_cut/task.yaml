@@ -13,7 +13,7 @@ execute: |
   # chisel will not, and the result has to be inspected from outside.
   docker volume create chisel-rootfs
 
-  docker run -d --name chisel-cut -v chisel-rootfs:/rootfs chisel:1.4-26.04
+  docker run -d --name chisel-cut -v chisel-rootfs:/rootfs chisel:1-26.04
 
   docker exec chisel-cut /usr/bin/chisel cut \
     --release ubuntu-24.04 \

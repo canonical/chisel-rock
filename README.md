@@ -10,7 +10,7 @@ This image was itself created with Chisel, to reduce its content to only the ess
 
 ## Available versions
 
-* [chisel-1.4 (Ubuntu 26.04)](./chisel/1.4-26.04/rockcraft.yaml)
+* [chisel-1 (Ubuntu 26.04)](./chisel/1-26.04/rockcraft.yaml)
 
 ## Using Chisel
 
@@ -18,7 +18,7 @@ Chisel is invoked using `chisel <command>`, and relies on a [database of slices]
 
 ```bash
 mkdir rootfs
-docker run --rm -v "$PWD/rootfs:/rootfs" chisel:1.4-26.04 \
+docker run --rm -v "$PWD/rootfs:/rootfs" chisel:1-26.04 \
   exec chisel cut --release ubuntu-24.04 --root /rootfs \
   libgcc-s1_libs libssl3t64_libs
 ```
@@ -32,7 +32,7 @@ Downloaded archive indices and packages are cached under `/var/cache/chisel`. Mo
 ```bash
 docker volume create chisel-cache
 docker run --rm -v chisel-cache:/var/cache/chisel -v "$PWD/rootfs:/rootfs" \
-  chisel:1.4-26.04 exec chisel cut --release ubuntu-24.04 --root /rootfs libssl3t64_libs
+  chisel:1-26.04 exec chisel cut --release ubuntu-24.04 --root /rootfs libssl3t64_libs
 ```
 
 ## Support for Pro archives
@@ -44,7 +44,7 @@ Chisel picks the credentials up from `/etc/apt/auth.conf.d/`, which this image p
 
 ```bash
 docker run --rm -v /etc/apt/auth.conf.d:/etc/apt/auth.conf.d:ro \
-  -v "$PWD/rootfs:/rootfs" chisel:1.4-26.04 \
+  -v "$PWD/rootfs:/rootfs" chisel:1-26.04 \
   exec chisel cut --release ubuntu-24.04 --root /rootfs some-pro-package_slice
 ```
 
@@ -61,7 +61,7 @@ Requires [Rockcraft](https://snapcraft.io/rockcraft) and LXD:
 ```bash
 make check-setup
 
-cd chisel/1.4-26.04
+cd chisel/1-26.04
 rockcraft pack
 rockcraft test
 ```

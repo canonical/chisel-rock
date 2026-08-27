@@ -22,10 +22,10 @@ suites:
       sudo apt remove --yes retry
 
       # Load the rock into docker
-      sudo rockcraft.skopeo --insecure-policy copy "oci-archive:$CRAFT_ARTIFACT" docker-daemon:chisel:1.4-26.04
+      sudo rockcraft.skopeo --insecure-policy copy "oci-archive:$CRAFT_ARTIFACT" docker-daemon:chisel:1-26.04
 
     restore: |
-      docker image rm --force chisel:1.4-26.04
+      docker image rm --force chisel:1-26.04
 
   spread/k8s/:
     summary: K8s integration tests
@@ -67,7 +67,7 @@ suites:
 
     restore: |
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
-        images rm docker.io/library/chisel:1.4 || true
+        images rm docker.io/library/chisel:1 || true
 
 exclude:
   - .git
