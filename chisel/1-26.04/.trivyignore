@@ -2,7 +2,7 @@
 # Trivy ignore file for chisel/1-26.04              #
 #####################################################
 
-# Every entry below is golang.org/x/crypto v0.37.0, the version chisel v1.4.2
+# Every entry below is golang.org/x/crypto v0.37.0, the version chisel v1.5.1
 # pins in go.mod, and every one of them is in ssh/, ssh/agent/ or
 # ssh/knownhosts/. Chisel imports only openpgp/{armor,clearsign,packet} and
 # sha3 from that module, so none of this code is linked into /usr/bin/chisel.

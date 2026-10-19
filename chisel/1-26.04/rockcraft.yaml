@@ -32,7 +32,7 @@ parts:
         plugin: go
         source: https://github.com/canonical/chisel.git
         source-type: git
-        source-tag: v1.4.2
+        source-tag: v1.5.1
         source-depth: 1
         build-snaps:
             - go/1.25/stable
@@ -44,7 +44,7 @@ parts:
         override-build: |
             # go generate ./cmd derives this from git describe, which has no
             # history to work with under source-depth 1.
-            ./cmd/mkversion.sh v1.4.2
+            ./cmd/mkversion.sh v1.5.1
             craftctl default
         # Drops chrorder, the code generator the go plugin also builds.
         stage:
