@@ -54,7 +54,12 @@ suites:
       # status --wait-ready returns before cilium finishes programming coredns,
       # and every cut starts by resolving codeload.github.com and the archive
       # host. Wait for kube-system to actually settle.
-      k8s kubectl wait --for=condition=Ready pods --all --namespace kube-system --timeout=5m
+      # `kubectl wait` errors out with "no matching resources found" if no pods
+      # exist yet, so first wait for the kube-system pods to be created.
+      timeout 300 bash -c 'until [ -n "$(k8s kubectl get pods --namespace kube-system --no-headers 2>/dev/null)" ]; do sleep 2; done'
+      # k8sd re-rolls cilium right after bootstrap, so a one-shot wait can time out
+      # on a pod that got replaced. retry until one full pass succeeds.
+      timeout 600 bash -c 'until k8s kubectl wait --for=condition=Ready pods --all --namespace kube-system --timeout=30s; do sleep 5; done'
 
       # Copy the built image to the local registry
       /snap/k8s/current/bin/ctr --address /run/containerd/containerd.sock -n k8s.io \
