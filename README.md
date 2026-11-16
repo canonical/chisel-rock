@@ -23,7 +23,7 @@ docker run --rm -v "$PWD/rootfs:/rootfs" chisel:1-26.04 \
   libgcc-s1_libs libssl3t64_libs
 ```
 
-In this example, Chisel would look into the Ubuntu Noble archives, fetch the provided packages and install only the desired slices into the *rootfs* folder, according to the slice definitions available in the ["ubuntu-24.04" chisel-releases branch](https://github.com/canonical/chisel-releases/tree/ubuntu-24.04).
+In this example, Chisel would look into the Ubuntu Noble archives, fetch the provided packages and install only the desired slices into the *rootfs* folder, according to the package slices files available in the ["ubuntu-24.04" chisel-releases branch](https://github.com/canonical/chisel-releases/tree/ubuntu-24.04).
 
 The container entrypoint is [`pebble`](https://github.com/canonical/pebble), and this rock declares no services, so commands are run through `pebble exec` - that is what the `exec` above is.
 

@@ -10,7 +10,8 @@ description: |
     into an OCI-compliant container image or similar.
 
     This image is a chiselled Ubuntu rock containing only the chisel binary and
-    the CA certificates it needs to reach the slice definitions and the archive.
+    the CA certificates it needs to reach the package slices files and the
+    archive.
 
 license: AGPL-3.0
 
